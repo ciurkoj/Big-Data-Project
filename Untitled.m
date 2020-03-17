@@ -15,32 +15,45 @@ Z = table2array(Z);
 Z=Z';
 [X,Y] = meshgrid(X, Y);
 % Display the raw data
-figure(1)
-mesh(X,Y,Z)
-% The data you will have from the NetCDF files will be X, Y and Z where
-% X & Y are the Lat and Lon values in a vector form
-% Z represents the ozone in a 2D array
-% The data provided here as X, Y, Z is in the corresponding formats.
+% Create the map
+worldmap('Europe'); % set the part of the earth to show
+load coastlines
+plotm(coastlat,coastlon)
+land = shaperead('landareas', 'UseGeoCoords', true);
+geoshow(gca, land, 'FaceColor', [0.5 0.7 0.5])
+lakes = shaperead('worldlakes', 'UseGeoCoords', true);
+geoshow(lakes, 'FaceColor', 'blue')
+rivers = shaperead('worldrivers', 'UseGeoCoords', true);
+geoshow(rivers, 'Color', 'blue')
+cities = shaperead('worldcities', 'UseGeoCoords', true);
+geoshow(cities, 'Marker', '.', 'Color', 'red')
 
-
-
-%% Plot contour map
-% [X,Y] = meshgrid(X, Y); % this calculation has been carried out above
-% already
-figure(1)
-fileDirectory = dir('24Hour/24HR_Orig_*.csv');
+v = VideoWriter('plot.avi');
+v.FrameRate = 4;
+open(v);
+fileDirectory = dir('24Hour/24HR_CBE_*.csv');
 for k = 1 : length(fileDirectory)
+    worldmap('Europe'); % set the part of the earth to show
+    load coastlines
+    plotm(coastlat,coastlon)
+    land = shaperead('landareas', 'UseGeoCoords', true);
+    geoshow(gca, land, 'FaceColor', [0.5 0.7 0.5])
+    lakes = shaperead('worldlakes', 'UseGeoCoords', true);
+    geoshow(lakes, 'FaceColor', 'blue')
+    rivers = shaperead('worldrivers', 'UseGeoCoords', true);
+    geoshow(rivers, 'Color', 'blue')
+    cities = shaperead('worldcities', 'UseGeoCoords', true);
+    geoshow(cities, 'Marker', '.', 'Color', 'red')
     file = fileDirectory(k).name;
-    file
-    matrix = readmatrix(['24Hour/',file]);
-    %matrix = matrix(398:698)
-    matrix = matrix';
-    showmap = pcolor(X,Y,matrix);
-    showmap.EdgeAlpha = 0;
-    load coast;
-    hold on;
-    s = plot(X,Y, 'k');
-    showmap;
-    pause(0.3);
+    Z = readtable(['24Hour/',file]);
+    Z = table2array(Z);
+    Z=Z';
+    theTitle = sprintf('Europe at %.f hours', k*100);
+    title(theTitle);
+    surfm(X,Y,Z, 'EdgeColor','none','FaceAlpha', 0.8)
+    frame = getframe(gcf);
+    writeVideo(v,frame);
+    cla
+    pause(0.05);
 end
-clf
+close(v);
