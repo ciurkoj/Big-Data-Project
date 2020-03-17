@@ -3,15 +3,17 @@ a = ncinfo('o3_surface_20180701000000.nc');
 chimere_ozone = {a.Variables.Name};
 table = ncread('o3_surface_20180701000000.nc',chimere_ozone{1});
 size(table);
-[X] = ncread('o3_surface_20180701000000.nc', 'lon')'; % create X value
-[Y] = ncread('o3_surface_20180701000000.nc', 'lat')';% create Y values
-% create a mesh of values
-[Y] = Y(1:398);
-[X] = X(1:698);
+[X] = ncread('o3_surface_20180701000000.nc', 'lat')'; % create X value
+[Y] = ncread('o3_surface_20180701000000.nc', 'lon')';% create Y values
+% create a mesh of valuesS
+[Y] = Y(1:698);
+[X] = X(1:398);
 X = double(X);
-Y = double(Y);
-Z = readtable('24Hour/24HR_CBE_01.csv');
-Z = table2array(Z)
+Y = double(Y)';
+Z = readtable('24Hour/24HR_Orig_01.csv');
+Z = table2array(Z);
+Z=Z';
+[X,Y] = meshgrid(X, Y);
 % Display the raw data
 figure(1)
 mesh(X,Y,Z)
@@ -22,7 +24,7 @@ mesh(X,Y,Z)
 
 
 %% Create a display of the data from the NetCDF files like this
-[X,Y] = meshgrid(X, Y);
+%[X,Y] = meshgrid(X, Y);
 
 size(X)
 size(Y)
@@ -48,14 +50,28 @@ cities = shaperead('worldcities', 'UseGeoCoords', true);
 geoshow(cities, 'Marker', '.', 'Color', 'red')
 
 % Plot the data
-surfm(X,Y,Z, 'none',...
-    'FaceAlpha', 0.5)  % edge colour outlines the edges, 'FaceAlpha', sets the transparency
+surfm(X,Y,Z, 'EdgeColor','none',...
+    'FaceAlpha', 0.8)  % edge colour outlines the edges, 'FaceAlpha', sets the transparency
 
 %% Plot contour map
 % [X,Y] = meshgrid(X, Y); % this calculation has been carried out above
 % already
-
-figure(3);
+figure(3)
+fileDirectory = dir('24Hour/24HR_CBE_*.csv');
+for k = 1 : length(fileDirectory)
+    file = fileDirectory(k).name;
+    matrix = readmatrix(['24Hour/',file]);
+    %matrix = matrix(398:698)
+    matrix = matrix';
+    showmap = pcolor(X,Y,matrix);
+    showmap.EdgeAlpha = 0;
+    load coast;
+    hold on;
+    s = plot(X,Y, 'k');
+    showmap;
+    pause(0.3);
+end
+figure(4);
 clf
 
 % create the map
@@ -76,10 +92,14 @@ cities = shaperead('worldcities', 'UseGeoCoords', true);
 geoshow(cities, 'Marker', '.', 'Color', 'red')
 
 % display the data
-NumContours = 10;
-contourfm(X, Y, Z, NumContours)
+NumContours = 5;
+contourfm(X, Y, Z, NumContours, 'Linewidth', 0.1);
 
 % This is a bit advanced, sets the visibility of the various parts of the
 % plot so the land, cities etc shows through.
 Plots = findobj(gca,'Type','Axes');
 Plots.SortMethod = 'depth';
+
+
+
+
