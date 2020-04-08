@@ -59,7 +59,7 @@ for k = 1 : length(fileDirectory)
     Z = table2array(Z);
     Z=Z';
     caxis([0 1.3])
-    colorbar;
+    colorbar('Ticks', [0, 0.1, 0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3]);
     theTitle = sprintf('Europe at %.f hours', k*100);
     title(theTitle);
     surfm(X,Y,Z, 'EdgeColor','none','FaceAlpha', 0.8)
