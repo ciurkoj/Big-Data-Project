@@ -1,4 +1,5 @@
 %%Create some data
+figure('Position',[1 0 1920 1200],'MenuBar','none','ToolBar','none','resize','off') % fullscreen
 a = ncinfo('o3_surface_20180701000000.nc');
 chimere_ozone = {a.Variables.Name};
 table = ncread('o3_surface_20180701000000.nc',chimere_ozone{1});
@@ -32,6 +33,7 @@ v = VideoWriter('plot.avi');
 v.FrameRate = 4;
 open(v);
 fileDirectory = dir('24Hour/24HR_CBE_*.csv');
+
 for k = 1 : length(fileDirectory)
     worldmap('Europe'); % set the part of the earth to show
     load coastlines
@@ -48,14 +50,17 @@ for k = 1 : length(fileDirectory)
     Z = readtable(['24Hour/',file]);
     Z = table2array(Z);
     Z=Z';
+    caxis('auto')
+    colorbar;
     theTitle = sprintf('Europe at %.f hours', k*100);
     title(theTitle);
     surfm(X,Y,Z, 'EdgeColor','none','FaceAlpha', 0.8)
     frame = getframe(gcf);
     writeVideo(v,frame);
     cla
-    pause(0.05);
+    pause(0.05);    
 end
+
 close(v);
 
 % create the map
