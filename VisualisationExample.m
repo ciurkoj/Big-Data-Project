@@ -50,7 +50,7 @@ for k = 1 : length(fileDirectory)
     Z = readtable(['24Hour/',file]);
     Z = table2array(Z);
     Z=Z';
-    caxis('auto')
+    caxis([0 1.3])
     colorbar;
     theTitle = sprintf('Europe at %.f hours', k*100);
     title(theTitle);
