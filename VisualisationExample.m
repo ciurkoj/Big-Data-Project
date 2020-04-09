@@ -1,4 +1,5 @@
 %%Create some data
+% Make sure to have cleared workspace before you run this program
 figure('Position',[1 0 1920 1200],'MenuBar','none','ToolBar','none','resize','off') % fullscreen
 a = ncinfo('o3_surface_20180701000000.nc');
 chimere_ozone = {a.Variables.Name};
@@ -34,7 +35,7 @@ v.FrameRate = 4;
 open(v);
 fileDirectory = dir('24Hour/24HR_CBE_*.csv');
 
-for k = 1 : length(fileDirectory)
+for k = 1 : length(fileDirectory)-1
     worldmap('Europe'); % set the part of the earth to show
     load coastlines
     plotm(coastlat,coastlon)
@@ -50,10 +51,18 @@ for k = 1 : length(fileDirectory)
     Z = readtable(['24Hour/',file]);
     Z = table2array(Z);
     Z=Z';
+    c = jet(100);
+    aplha =0.3;
+    colormap(c);
     caxis([0 1.3])
-    colorbar('Ticks', [0, 0.1, 0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3]);
-    theTitle = sprintf('Europe at %.f hours', k*100);
-    title(theTitle);
+    c = colorbar('Ticks', [0, 0.1, 0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3]);
+    c.Label.String = 'Ozone concentration';
+    if k<=12
+        theTitle = sprintf('Time: %.f AM ', k);
+    else
+        theTitle = sprintf('Time: %.f PM', k-12);
+    end;
+    title({'Ozone Concetration over Europe ';theTitle});
     surfm(X,Y,Z, 'EdgeColor','none','FaceAlpha', 0.8)
     frame = getframe(gcf);
     writeVideo(v,frame);
@@ -88,7 +97,6 @@ contourfm(X, Y, Z, NumContours, 'Linewidth', 0.1);
 % plot so the land, cities etc shows through.
 Plots = findobj(gca,'Type','Axes');
 Plots.SortMethod = 'depth';
-
 
 
 
