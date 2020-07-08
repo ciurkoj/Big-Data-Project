@@ -31,6 +31,7 @@ geoshow(cities, 'Marker', '.', 'Color', 'red')
 v = VideoWriter('plot.avi');
 v.FrameRate = 4;
 open(v);
+fileDirectory = dir('Data/24Hour/24HR_CBE_*.csv');
 for k = 1 : length(fileDirectory)
     worldmap('Europe'); % set the part of the earth to show
     load coastlines
@@ -44,7 +45,7 @@ for k = 1 : length(fileDirectory)
     cities = shaperead('worldcities', 'UseGeoCoords', true);
     geoshow(cities, 'Marker', '.', 'Color', 'red')
     file = fileDirectory(k).name;
-    Z = readtable(['24Hour/',file]);
+    Z = readtable(['Data/24Hour/',file]);
     Z = table2array(Z);
     Z=Z';
     theTitle = sprintf('Europe at %.f hours', k*100);
