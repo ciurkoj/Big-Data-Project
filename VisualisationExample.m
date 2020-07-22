@@ -1,5 +1,10 @@
 %%Create some data
+<<<<<<< HEAD
 a = ncinfo('Data/Model Combined/o3_surface_20180701000000.nc');
+=======
+figure('Position',[1 0 1920 1200],'MenuBar','none','ToolBar','none','resize','off') % fullscreen
+a = ncinfo('o3_surface_20180701000000.nc');
+>>>>>>> Added a prototype of colorbar
 chimere_ozone = {a.Variables.Name};
 table = ncread('Data/Model Combined/o3_surface_20180701000000.nc',chimere_ozone{1});
 size(table);
@@ -31,7 +36,12 @@ geoshow(cities, 'Marker', '.', 'Color', 'red')
 v = VideoWriter('plot.avi');
 v.FrameRate = 4;
 open(v);
+<<<<<<< HEAD
 fileDirectory = dir('Data/24Hour/24HR_CBE_*.csv');
+=======
+fileDirectory = dir('24Hour/24HR_CBE_*.csv');
+
+>>>>>>> Added a prototype of colorbar
 for k = 1 : length(fileDirectory)
     worldmap('Europe'); % set the part of the earth to show
     load coastlines
@@ -48,15 +58,27 @@ for k = 1 : length(fileDirectory)
     Z = readtable(['Data/24Hour/',file]);
     Z = table2array(Z);
     Z=Z';
+    caxis('auto')
+    colorbar;
     theTitle = sprintf('Europe at %.f hours', k*100);
     title(theTitle);
     surfm(X,Y,Z, 'EdgeColor','none','FaceAlpha', 0.8)
     frame = getframe(gcf);
     writeVideo(v,frame);
     cla
-    pause(0.05);
+    pause(0.05);    
 end
+<<<<<<< HEAD
 close all;
+=======
+
+close(v);
+
+% create the map
+worldmap('Europe'); % set the part of the earth to show
+load coastlines
+plotm(coastlat,coastlon)
+>>>>>>> Added a prototype of colorbar
 
 close(v);
 
