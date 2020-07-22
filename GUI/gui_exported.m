@@ -39,8 +39,7 @@ classdef gui_exported < matlab.apps.AppBase
         SelectsavedestinationButton matlab.ui.control.Button
         SaveDestionation matlab.ui.control.EditField
         PlayButton matlab.ui.control.Button
-        button matlab.ui.control.Button
-
+        StopButton matlab.ui.control.Button
     end
 
     properties (Access = private)
@@ -57,6 +56,7 @@ classdef gui_exported < matlab.apps.AppBase
         SliderPreviousValue;
         ax1;
         fileChooser;
+        stopPlay = false; % Description
     end
 
     methods (Access = private)
@@ -73,7 +73,6 @@ classdef gui_exported < matlab.apps.AppBase
             geoshow(lakes, 'FaceColor', 'blue');
             cities = shaperead('worldcities', 'UseGeoCoords', true);
             geoshow(cities, 'Marker', '.', 'Color', 'red');
-
             xbar = waitbar(0, 'Loading data');
             app.theMaps = [];
 
@@ -96,7 +95,6 @@ classdef gui_exported < matlab.apps.AppBase
             title(app.UIAxes, theTitle);
             set(app.theMaps(app.ChangetimeSlider.Value + 1), 'Visible', 'on');
             app.SliderPreviousValue = (app.ChangetimeSlider.Value) + 1;
-
             app.ChangeColourAccessibilityButtonGroupSelectionChanged();
             app.addColorbar();
             copyobj(app.ax1.Children, app.UIAxes);
@@ -105,9 +103,7 @@ classdef gui_exported < matlab.apps.AppBase
                 close(xbar);
             end
 
-            fig1 = app.ax1.Parent;
-            set(fig1, 'Visible', 'off');
-
+            app.PlayButton.Enable = 'on';
         end
 
         function readNcValuesToTable(app, pathToNcFile)
@@ -150,7 +146,6 @@ classdef gui_exported < matlab.apps.AppBase
                 end
 
                 app.xValues = ncread(app.pathToNcFile, latitude)'; % create X value
-
                 app.yValues = ncread(app.pathToNcFile, longitude)'; % create Y values
                 [app.xValues, app.yValues] = meshgrid(double(app.xValues), double(app.yValues));
                 app.ChangetimeSlider.Limits = [0, ((length(app.zValues(1, 1, :)) - 1))];
@@ -173,7 +168,6 @@ classdef gui_exported < matlab.apps.AppBase
                 app.CSVsFolder.Value = "Enter a valid path!";
             elseif app.CSVsFolder.Value == "Enter a valid path!"
                 app.CSVsFolder.Value = "Enter a valid path!";
-
             else
                 xbar = waitbar(0, 'Loading data');
 
@@ -186,7 +180,6 @@ classdef gui_exported < matlab.apps.AppBase
                 end
 
                 dirTemplate = strcat(pathToFiles, app.CSVmodelsnametemplateEditField.Value);
-
                 sprintf("selected button: %s", app.ChooseEnsembleForCombinedModelButtonGroup.SelectedObject.Tag);
                 fileDirectory = dir(dirTemplate);
 
@@ -229,7 +222,6 @@ classdef gui_exported < matlab.apps.AppBase
         function collectModels(app)
 
             if ~isletter(app.pathToNcFile)
-
             else
                 variables = {ncinfo(app.pathToNcFile).Variables.Name};
                 app.ChooseModelDropDown.Items = {};
@@ -299,7 +291,7 @@ classdef gui_exported < matlab.apps.AppBase
 
     % Callbacks that handle component events
     methods (Access = private)
-
+        % Code that executes after component creation
         function startupFcn(app, fileChooser)
 
             if nargin == 0
@@ -334,11 +326,9 @@ classdef gui_exported < matlab.apps.AppBase
                 axis(app.UIAxes, 'off');
                 set(app.theMaps(app.SliderPreviousValue), 'Visible', 'off');
                 set(app.theMaps(app.ChangetimeSlider.Value + 1), 'Visible', 'on');
-
                 copyobj(app.ax1.Children, app.UIAxes);
                 theTitle = sprintf('Europe at %.f:00', app.ChangetimeSlider.Value);
                 title(app.UIAxes, theTitle);
-
                 app.mapColourAccessibility();
                 app.addColorbar();
                 app.SliderPreviousValue = app.ChangetimeSlider.Value + 1;
@@ -350,7 +340,6 @@ classdef gui_exported < matlab.apps.AppBase
         % Button pushed function: UploadanNCfileButton
         function UploadanNCfileButtonPushed(app, fileChooser)
             [file, folder, status] = fileChooser.uigetfile('*.nc');
-
             [app.NcFile.Value, app.pathToNcFile] = deal(fullfile(folder, file));
 
             if status
@@ -389,7 +378,6 @@ classdef gui_exported < matlab.apps.AppBase
         % Value changed function: ChooseModelDropDown
         function ChooseModelDropDownValueChanged(app, event)
             %app.generateMap(app.ChangetimeSlider.Value);
-
         end
 
         % Button pushed function: NCLoadDataButton
@@ -402,10 +390,8 @@ classdef gui_exported < matlab.apps.AppBase
 
             if isempty(app.NcFile.Value)
                 app.NcFile.Value = "Enter a valid path!";
-
             elseif ~isletter(app.NcFile.Value)
                 app.NcFile.Value = "Enter a valid path!";
-
             else
                 readNcValuesToTable(app, app.NcFile.Value);
             end
@@ -436,11 +422,20 @@ classdef gui_exported < matlab.apps.AppBase
 
         % Button pushed function: PlayButton
         function PlayButtonPushed(app, event)
+            app.StopButton.Enable = 'on';
 
             if isempty(app.theMaps) || isempty(app.tableValues)
             else
 
                 for time = 1:25
+                    disp(app.stopPlay)
+
+                    if app.stopPlay == 1
+                        disp("stopped");
+                        app.stopPlay = 0;
+                        break
+                    end
+
                     cla(app.UIAxes, 'reset');
                     axis(app.UIAxes, 'off');
                     set(app.theMaps(time), 'Visible', 'off');
@@ -470,7 +465,6 @@ classdef gui_exported < matlab.apps.AppBase
             if isempty(app.theMaps) || isempty(app.tableValues) || isempty(app.SaveDestionation.Value)
                 app.SaveDestionation.Value = "Enter a valid path!";
             else
-
                 v = VideoWriter(strcat(app.SaveDestionation.Value, app.SaveasEditField.Value, '.avi'));
                 v.FrameRate = 4;
                 open(v);
@@ -525,6 +519,16 @@ classdef gui_exported < matlab.apps.AppBase
         function SelectsavedestinationButtonPushed(app, event)
             path = uigetdir();
             app.SaveDestionation.Value = strcat(path, "/");
+        end
+
+        % Button pushed function: StopButton
+        function StopButtonPushed(app, event)
+            app.StopButton.Enable = 'off';
+            app.stopPlay = 1;
+
+            if ~ishandle(app.StopButton)
+                disp(ishandle(app.StopButton));
+            end
 
         end
 
@@ -565,7 +569,7 @@ classdef gui_exported < matlab.apps.AppBase
             % Create ChangetimeLabel
             app.ChangetimeLabel = uilabel(app.UIFigure);
             app.ChangetimeLabel.HorizontalAlignment = 'right';
-            app.ChangetimeLabel.Position = [582 154 77 22];
+            app.ChangetimeLabel.Position = [670 151 77 22];
             app.ChangetimeLabel.Text = {'Change time:'; ''};
 
             % Create ChangetimeSlider
@@ -575,7 +579,7 @@ classdef gui_exported < matlab.apps.AppBase
             app.ChangetimeSlider.MajorTickLabels = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24', ''};
             app.ChangetimeSlider.ValueChangedFcn = createCallbackFcn(app, @ChangetimeSliderValueChanged, true);
             app.ChangetimeSlider.MinorTicks = [1 5 10 15 20];
-            app.ChangetimeSlider.Position = [680 163 615 3];
+            app.ChangetimeSlider.Position = [768 160 585 3];
 
             % Create UITable
             app.UITable = uitable(app.UIFigure);
@@ -598,14 +602,14 @@ classdef gui_exported < matlab.apps.AppBase
 
             % Create CSVsFolder
             app.CSVsFolder = uieditfield(app.OrextractdatafromcsvmodelsPanel, 'text');
-            app.CSVsFolder.Position = [140 185 270 22];
+            app.CSVsFolder.Position = [140 185 340 22];
             app.CSVsFolder.Value = 'select a name template for csv files';
 
             % Create ChooseEnsembleForCombinedModelButtonGroup
             app.ChooseEnsembleForCombinedModelButtonGroup = uibuttongroup(app.OrextractdatafromcsvmodelsPanel);
             app.ChooseEnsembleForCombinedModelButtonGroup.SelectionChangedFcn = createCallbackFcn(app, @ChooseEnsembleForCombinedModelButtonGroupSelectionChanged, true);
             app.ChooseEnsembleForCombinedModelButtonGroup.Title = 'Choose Ensemble For Combined Model';
-            app.ChooseEnsembleForCombinedModelButtonGroup.Position = [10 90 400 68];
+            app.ChooseEnsembleForCombinedModelButtonGroup.Position = [10 90 470 68];
 
             % Create OriginButton
             app.OriginButton = uiradiobutton(app.ChooseEnsembleForCombinedModelButtonGroup);
@@ -627,12 +631,12 @@ classdef gui_exported < matlab.apps.AppBase
 
             % Create CSVmodelsnametemplateEditField
             app.CSVmodelsnametemplateEditField = uieditfield(app.OrextractdatafromcsvmodelsPanel, 'text');
-            app.CSVmodelsnametemplateEditField.Position = [174 51 236 22];
+            app.CSVmodelsnametemplateEditField.Position = [174 51 305 22];
 
             % Create CSVLoadDataButton
             app.CSVLoadDataButton = uibutton(app.OrextractdatafromcsvmodelsPanel, 'push');
             app.CSVLoadDataButton.ButtonPushedFcn = createCallbackFcn(app, @CSVLoadDataButtonPushed, true);
-            app.CSVLoadDataButton.Position = [310 10 100 24];
+            app.CSVLoadDataButton.Position = [380 12 100 24];
             app.CSVLoadDataButton.Text = {'Load Data'; ''};
 
             % Create ImportdatafromanncfilePanel
@@ -644,7 +648,7 @@ classdef gui_exported < matlab.apps.AppBase
 
             % Create NcFile
             app.NcFile = uieditfield(app.ImportdatafromanncfilePanel, 'text');
-            app.NcFile.Position = [130 55 280 22];
+            app.NcFile.Position = [130 55 350 22];
 
             % Create UploadanNCfileButton
             app.UploadanNCfileButton = uibutton(app.ImportdatafromanncfilePanel, 'push');
@@ -655,7 +659,7 @@ classdef gui_exported < matlab.apps.AppBase
             % Create NCLoadDataButton
             app.NCLoadDataButton = uibutton(app.ImportdatafromanncfilePanel, 'push');
             app.NCLoadDataButton.ButtonPushedFcn = createCallbackFcn(app, @NCLoadDataButtonPushed, true);
-            app.NCLoadDataButton.Position = [310 12 100 24];
+            app.NCLoadDataButton.Position = [380 11 100 24];
             app.NCLoadDataButton.Text = {'Load Data'; ''};
 
             % Create ChooseModelDropDownLabel
@@ -668,7 +672,7 @@ classdef gui_exported < matlab.apps.AppBase
             app.ChooseModelDropDown = uidropdown(app.ImportdatafromanncfilePanel);
             app.ChooseModelDropDown.Items = {};
             app.ChooseModelDropDown.ValueChangedFcn = createCallbackFcn(app, @ChooseModelDropDownValueChanged, true);
-            app.ChooseModelDropDown.Position = [130 12 150 22];
+            app.ChooseModelDropDown.Position = [130 12 177 22];
             app.ChooseModelDropDown.Value = {};
 
             % Create ChangeColourAccessibilityButtonGroup
@@ -763,12 +767,19 @@ classdef gui_exported < matlab.apps.AppBase
             % Create PlayButton
             app.PlayButton = uibutton(app.UIFigure, 'push');
             app.PlayButton.ButtonPushedFcn = createCallbackFcn(app, @PlayButtonPushed, true);
+            app.PlayButton.Enable = 'off';
             app.PlayButton.Position = [522 130 61 46];
             app.PlayButton.Text = 'Play';
 
+            % Create StopButton
+            app.StopButton = uibutton(app.UIFigure, 'push');
+            app.StopButton.ButtonPushedFcn = createCallbackFcn(app, @StopButtonPushed, true);
+            app.StopButton.Enable = 'off';
+            app.StopButton.Position = [604 130 61 46];
+            app.StopButton.Text = 'Stop';
+
             % Show the figure after all components are created
             app.UIFigure.Visible = 'on';
-
         end
 
     end
@@ -776,7 +787,6 @@ classdef gui_exported < matlab.apps.AppBase
     % App creation and deletion
     methods (Access = public)
 
-        % Construct app
         % Construct app
         function app = gui_exported(varargin)
 
