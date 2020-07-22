@@ -1,7 +1,7 @@
 if(~isdeployed)
   cd(fileparts(which(mfilename)));
 end
-DataPath = '.\';
+DataPath = './';
 AvailableFiles = dir((fullfile(DataPath, '*.fig'))); % list available data files
 
 for idx = 1: size(AvailableFiles,1)
@@ -11,4 +11,5 @@ for idx = 1: size(AvailableFiles,1)
     
     Name = strsplit(OpenFileName,'.');
     writematrix(Ozone, strcat(Name{1},'.csv'))
+    close(fig)
 end
