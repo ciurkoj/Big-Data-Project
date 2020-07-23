@@ -57,6 +57,7 @@ classdef gui_exported < matlab.apps.AppBase
         ax1;
         fileChooser;
         stopPlay = false; % Description
+        imgArray = [];
     end
 
     methods (Access = private)
@@ -66,7 +67,8 @@ classdef gui_exported < matlab.apps.AppBase
             axis(app.UIAxes, 'off');
             app.ax1 = worldmap('Europe');
             fig1 = app.ax1.Parent;
-            set(fig1, 'Visible', 'off')
+            set(fig1, 'units', 'pixels', 'position', [0, 0, 1920, 1080]);
+            set(fig1, 'Visible', 'off');
             land = shaperead('landareas', 'UseGeoCoords', true);
             geoshow([land.Lat], [land.Lon], 'Color', 'k');
             lakes = shaperead('worldlakes', 'UseGeoCoords', true);
@@ -75,12 +77,20 @@ classdef gui_exported < matlab.apps.AppBase
             geoshow(cities, 'Marker', '.', 'Color', 'red');
             xbar = waitbar(0, 'Loading data');
             app.theMaps = [];
+            set(figure(2), 'units', 'pixels', 'position', [0, 0, 1920, 1080]);
+            set(figure(2), 'Visible', 'off');
 
             for time = 1:length(app.zValues(1, 1, :))
                 theTitle = sprintf('Europe at %.f:00', time - 1);
                 title(theTitle);
                 set(0, 'currentfigure', app.ax1.Parent);
-                app.theMaps = [app.theMaps, surfm(app.xValues, app.yValues, app.zValues(:, :, time), 'EdgeColor', 'none', 'FaceAlpha', 0.7)];
+                map = surfm(app.xValues, app.yValues, app.zValues(:, :, time), 'EdgeColor', 'none', 'FaceAlpha', 0.7)
+                theTitle = sprintf('Europe at %.f:00', app.ChangetimeSlider.Value);
+                title(app.ax1, theTitle);
+                app.ChangeColourAccessibilityButtonGroupSelectionChanged();
+                app.addColorbar(app.ax1);
+                app.theMaps = [app.theMaps, map];
+                app.imgArray = [app.imgArray, getframe(app.ax1.Parent)];
                 set(app.theMaps(time), 'Visible', 'off');
 
                 if isvalid(xbar)
@@ -91,19 +101,18 @@ classdef gui_exported < matlab.apps.AppBase
 
             end
 
-            theTitle = sprintf('Europe at %.f:00', app.ChangetimeSlider.Value);
-            title(app.UIAxes, theTitle);
+            set(0, 'currentfigure', app.ax1.Parent);
             set(app.theMaps(app.ChangetimeSlider.Value + 1), 'Visible', 'on');
             app.SliderPreviousValue = (app.ChangetimeSlider.Value) + 1;
-            app.ChangeColourAccessibilityButtonGroupSelectionChanged();
-            app.addColorbar();
+
             copyobj(app.ax1.Children, app.UIAxes);
+            app.addColorbar(app.UIAxes);
+            app.PlayButton.Enable = 'on';
 
             if isvalid(xbar)
                 close(xbar);
             end
 
-            app.PlayButton.Enable = 'on';
         end
 
         function readNcValuesToTable(app, pathToNcFile)
@@ -250,19 +259,21 @@ classdef gui_exported < matlab.apps.AppBase
 
         end
 
-        function addColorbar(app)
-            c = colorbar(app.UIAxes);
+        function c = addColorbar(app, toFigure)
+            c = colorbar(toFigure);
             c.Label.String = 'Ozone concentration (ppbv )';
             title(c, 'ppbv')
             c.Position(4) = 0.6 * c.Position(4);
             c.Position(1) = 0.95 * c.Position(1);
             c.Position = c.Position + [.05 .2 0 0];
+            %{
             c = colorbar(app.ax1);
             c.Label.String = 'Ozone concentration (ppbv )';
             title(c, 'ppbv')
             c.Position(4) = 0.6 * c.Position(4);
             c.Position(1) = 0.95 * c.Position(1);
             c.Position = c.Position + [.05 .25 0 0];
+            %}
         end
 
         function mapColourAccessibility(app)
@@ -321,6 +332,7 @@ classdef gui_exported < matlab.apps.AppBase
         function ChangetimeSliderValueChanged(app, event)
 
             if ~isempty(app.theMaps)
+
                 set(app.ChangetimeSlider, 'Value', round(app.ChangetimeSlider.Value));
                 cla(app.UIAxes, 'reset');
                 axis(app.UIAxes, 'off');
@@ -422,7 +434,10 @@ classdef gui_exported < matlab.apps.AppBase
 
         % Button pushed function: PlayButton
         function PlayButtonPushed(app, event)
+            cla(app.UIAxes, 'reset');
+            axis(app.UIAxes, 'off');
             app.StopButton.Enable = 'on';
+            set(app.theMaps(app.ChangetimeSlider.Value + 1), 'Visible', 'off');
 
             if isempty(app.theMaps) || isempty(app.tableValues)
             else
@@ -433,6 +448,10 @@ classdef gui_exported < matlab.apps.AppBase
                     if app.stopPlay == 1
                         disp("stopped");
                         app.stopPlay = 0;
+                        cla(app.UIAxes, 'reset');
+                        axis(app.UIAxes, 'off');
+                        set(app.theMaps(time), 'Visible', 'on');
+                        app.addColorbar(app.UIAxes);
                         break
                     end
 
@@ -444,14 +463,16 @@ classdef gui_exported < matlab.apps.AppBase
                     title(app.UIAxes, theTitle);
 
                     if time == 25
-                        set(app.theMaps(time), 'Visible', 'on');
+                        imshow(app.imgArray(time).cdata, 'parent', app.UIAxes)
+                        %set(app.theMaps(time), 'Visible', 'on');
                     else
-                        set(app.theMaps(time + 1), 'Visible', 'on');
+                        imshow(app.imgArray(time).cdata, 'parent', app.UIAxes)
+                        %set(app.theMaps(time + 1), 'Visible', 'on');
                     end
 
-                    copyobj(app.ax1.Children, app.UIAxes);
+                    %copyobj(app.ax1.Children, app.UIAxes);
                     app.mapColourAccessibility();
-                    app.addColorbar();
+                    %app.addColorbar(app.UIAxes);
                     pause(1);
                 end
 
