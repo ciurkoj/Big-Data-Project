@@ -4,7 +4,7 @@ classdef gui_exportedTest < matlab.uitest.TestCase & matlab.mock.TestCase
 
         function testInputButton(tc)
             import matlab.mock.actions.AssignOutputs
-            fname = '/Data/Model Combined/o3_surface_20180701000000.nc';
+            fname = '../Data/Model Combined/o3_surface_20180701000000.nc';
 
             [mockChooser, behavior] = tc.createMock(?FileChooser);
 
