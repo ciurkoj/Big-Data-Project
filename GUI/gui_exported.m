@@ -40,6 +40,8 @@ classdef gui_exported < matlab.apps.AppBase
         SaveDestionation matlab.ui.control.EditField
         PlayButton matlab.ui.control.Button
         StopButton matlab.ui.control.Button
+        SwitchpresantationmodeLabel matlab.ui.control.Label
+        Switchpresantationmode matlab.ui.control.Switch
     end
 
     properties (Access = private)
@@ -434,46 +436,54 @@ classdef gui_exported < matlab.apps.AppBase
 
         % Button pushed function: PlayButton
         function PlayButtonPushed(app, event)
-            cla(app.UIAxes, 'reset');
-            axis(app.UIAxes, 'off');
-            app.StopButton.Enable = 'on';
-            set(app.theMaps(app.ChangetimeSlider.Value + 1), 'Visible', 'off');
 
-            if isempty(app.theMaps) || isempty(app.tableValues)
+            if app.stopPlay
+                app.stopPlay = 0;
+                pause("off");
             else
+                cla(app.UIAxes, 'reset');
+                axis(app.UIAxes, 'off');
+                app.StopButton.Enable = 'on';
+                set(app.theMaps(app.ChangetimeSlider.Value + 1), 'Visible', 'off');
 
-                for time = 1:25
-                    disp(app.stopPlay)
+                if isempty(app.theMaps) || isempty(app.tableValues)
+                else
 
-                    if app.stopPlay == 1
-                        disp("stopped");
-                        app.stopPlay = 0;
+                    for time = 1:25
+                        disp(app.stopPlay)
+
+                        if app.stopPlay == 1
+                            disp("stopped");
+                            pause("on");
+                            app.stopPlay = 0;
+                            %cla(app.UIAxes, 'reset');
+                            %axis(app.UIAxes, 'off');
+                            %set(app.theMaps(time), 'Visible', 'on');
+                            %app.addColorbar(app.UIAxes);
+                            break
+                        end
+
                         cla(app.UIAxes, 'reset');
                         axis(app.UIAxes, 'off');
-                        set(app.theMaps(time), 'Visible', 'on');
-                        app.addColorbar(app.UIAxes);
-                        break
+                        set(app.theMaps(time), 'Visible', 'off');
+                        set(app.ChangetimeSlider, 'Value', time - 1);
+                        theTitle = sprintf('Europe at %.f:00', time - 1);
+                        title(app.UIAxes, theTitle);
+
+                        if time == 25
+                            imshow(app.imgArray(time).cdata, 'parent', app.UIAxes)
+                            %set(app.theMaps(time), 'Visible', 'on');
+                        else
+                            imshow(app.imgArray(time).cdata, 'parent', app.UIAxes)
+                            %set(app.theMaps(time + 1), 'Visible', 'on');
+                        end
+
+                        %copyobj(app.ax1.Children, app.UIAxes);
+                        app.mapColourAccessibility();
+                        %app.addColorbar(app.UIAxes);
+                        pause(1);
                     end
 
-                    cla(app.UIAxes, 'reset');
-                    axis(app.UIAxes, 'off');
-                    set(app.theMaps(time), 'Visible', 'off');
-                    set(app.ChangetimeSlider, 'Value', time - 1);
-                    theTitle = sprintf('Europe at %.f:00', time - 1);
-                    title(app.UIAxes, theTitle);
-
-                    if time == 25
-                        imshow(app.imgArray(time).cdata, 'parent', app.UIAxes)
-                        %set(app.theMaps(time), 'Visible', 'on');
-                    else
-                        imshow(app.imgArray(time).cdata, 'parent', app.UIAxes)
-                        %set(app.theMaps(time + 1), 'Visible', 'on');
-                    end
-
-                    %copyobj(app.ax1.Children, app.UIAxes);
-                    app.mapColourAccessibility();
-                    %app.addColorbar(app.UIAxes);
-                    pause(1);
                 end
 
             end
@@ -544,8 +554,9 @@ classdef gui_exported < matlab.apps.AppBase
 
         % Button pushed function: StopButton
         function StopButtonPushed(app, event)
-            app.StopButton.Enable = 'off';
+            %app.StopButton.Enable = 'off';
             app.stopPlay = 1;
+            disp("stopped")
 
             if ~ishandle(app.StopButton)
                 disp(ishandle(app.StopButton));
@@ -590,7 +601,7 @@ classdef gui_exported < matlab.apps.AppBase
             % Create ChangetimeLabel
             app.ChangetimeLabel = uilabel(app.UIFigure);
             app.ChangetimeLabel.HorizontalAlignment = 'right';
-            app.ChangetimeLabel.Position = [670 151 77 22];
+            app.ChangetimeLabel.Position = [817 153 77 22];
             app.ChangetimeLabel.Text = {'Change time:'; ''};
 
             % Create ChangetimeSlider
@@ -600,7 +611,7 @@ classdef gui_exported < matlab.apps.AppBase
             app.ChangetimeSlider.MajorTickLabels = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24', ''};
             app.ChangetimeSlider.ValueChangedFcn = createCallbackFcn(app, @ChangetimeSliderValueChanged, true);
             app.ChangetimeSlider.MinorTicks = [1 5 10 15 20];
-            app.ChangetimeSlider.Position = [768 160 585 3];
+            app.ChangetimeSlider.Position = [915 162 437 3];
 
             % Create UITable
             app.UITable = uitable(app.UIFigure);
@@ -795,10 +806,21 @@ classdef gui_exported < matlab.apps.AppBase
             % Create StopButton
             app.StopButton = uibutton(app.UIFigure, 'push');
             app.StopButton.ButtonPushedFcn = createCallbackFcn(app, @StopButtonPushed, true);
-            app.StopButton.Enable = 'off';
-            app.StopButton.Position = [604 130 61 46];
+            %app.StopButton.Enable = 'off';
+            app.StopButton.Position = [596 130 61 46];
             app.StopButton.Text = 'Stop';
 
+            % Create SwitchpresantationmodeLabel
+            app.SwitchpresantationmodeLabel = uilabel(app.UIFigure);
+            app.SwitchpresantationmodeLabel.HorizontalAlignment = 'center';
+            app.SwitchpresantationmodeLabel.Position = [664 123 144 22];
+            app.SwitchpresantationmodeLabel.Text = 'Switch presantation mode';
+
+            % Create Switchpresantationmode
+            app.Switchpresantationmode = uiswitch(app.UIFigure, 'slider');
+            app.Switchpresantationmode.Items = {'Images', 'Figures'};
+            app.Switchpresantationmode.Position = [712 155 47 21];
+            app.Switchpresantationmode.Value = 'Images';
             % Show the figure after all components are created
             app.UIFigure.Visible = 'on';
         end
