@@ -58,6 +58,7 @@ classdef gui_exported < matlab.apps.AppBase
         SliderPreviousValue;
         ax1;
         fileChooser;
+        pathFinder;
         stopPlay = false; % Description
         imgArray = [];
     end
@@ -316,9 +317,13 @@ classdef gui_exported < matlab.apps.AppBase
                 disp("zero")
             elseif nargin == 1
                 app.fileChooser = DefaultFileChooser;
+                app.pathFinder = PathFinder;
                 disp("one")
             else
+
                 app.fileChooser = fileChooser;
+                app.pathFinder = fileChooser;
+
                 disp("more")
             end
 
@@ -372,13 +377,16 @@ classdef gui_exported < matlab.apps.AppBase
         end
 
         % Button pushed function: ChoosefolderwithCSVmodelsButton
-        function ChoosefolderwithCSVmodelsButtonPushed(app, event)
-            path = uigetdir();
+        function ChoosefolderwithCSVmodelsButtonPushed(app, fileChooser)
+            %path = uigetdir();
+
+            path = fileChooser.getdir();
 
             if ~isempty(app.CSVsFolder.Value)
 
                 if path ~= 0
-                    app.CSVsFolder.Value = strcat(path, "/");
+                    app.CSVsFolder.Value = '';
+                    app.CSVsFolder.Value = path;
                 else
                     app.CSVsFolder.Value = "select a name template for csv files";
                 end
@@ -664,7 +672,7 @@ classdef gui_exported < matlab.apps.AppBase
 
             % Create ChoosefolderwithCSVmodelsButton
             app.ChoosefolderwithCSVmodelsButton = uibutton(app.OrextractdatafromcsvmodelsPanel, 'push');
-            app.ChoosefolderwithCSVmodelsButton.ButtonPushedFcn = createCallbackFcn(app, @ChoosefolderwithCSVmodelsButtonPushed, true);
+            app.ChoosefolderwithCSVmodelsButton.ButtonPushedFcn = @(src, evt)ChoosefolderwithCSVmodelsButtonPushed(app, app.pathFinder); %createCallbackFcn(app, @ChoosefolderwithCSVmodelsButtonPushed, true);
             app.ChoosefolderwithCSVmodelsButton.Position = [10 178 120 36];
             app.ChoosefolderwithCSVmodelsButton.Text = {'Choose folder with '; 'CSV models'};
 
