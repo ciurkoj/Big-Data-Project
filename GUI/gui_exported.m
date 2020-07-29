@@ -45,7 +45,7 @@ classdef gui_exported < matlab.apps.AppBase
     end
 
     properties (Access = private)
-        tableValues;
+        %tableValues;
         xValues = [];
         yValues = [];
         zValues = [];
@@ -54,13 +54,20 @@ classdef gui_exported < matlab.apps.AppBase
         csvNameTemplate;
         theNcFile;
         colorAccessibilityOption;
-        theMaps = [];
+        %theMaps = [];
         SliderPreviousValue;
         ax1;
         fileChooser;
         pathFinder;
         stopPlay = false; % Description
         imgArray = [];
+    end
+
+    properties (Access = public)
+        tableValues;
+
+        theMaps = [];
+
     end
 
     methods (Access = private)
@@ -377,10 +384,10 @@ classdef gui_exported < matlab.apps.AppBase
         end
 
         % Button pushed function: ChoosefolderwithCSVmodelsButton
-        function ChoosefolderwithCSVmodelsButtonPushed(app, fileChooser)
+        function ChoosefolderwithCSVmodelsButtonPushed(app, pathFinder)
             %path = uigetdir();
 
-            path = fileChooser.getdir();
+            path = pathFinder.getdir();
 
             if ~isempty(app.CSVsFolder.Value)
 
@@ -388,11 +395,11 @@ classdef gui_exported < matlab.apps.AppBase
                     app.CSVsFolder.Value = '';
                     app.CSVsFolder.Value = path;
                 else
-                    app.CSVsFolder.Value = "select a name template for csv files";
+                    app.CSVsFolder.Value = "Enter a valid path!";
                 end
 
             else
-                app.CSVsFolder.Value = "select a name template for csv files";
+                app.CSVsFolder.Value = 'Enter a valid path!';
             end
 
         end
@@ -549,8 +556,12 @@ classdef gui_exported < matlab.apps.AppBase
         % Button pushed function: ExportvideofileButton
         function ExportvideofileButtonPushed(app, event)
 
-            if isempty(app.theMaps) || isempty(app.tableValues) || isempty(app.SaveDestionation.Value)
+            if isempty(app.theMaps) || isempty(app.tableValues)
+                [app.SaveasEditField.Value, app.SaveDestionation.Value] = deal("You need to load the data")
+            elseif isempty(app.SaveDestionation.Value)
                 app.SaveDestionation.Value = "Enter a valid path!";
+            elseif isempty(app.SaveasEditField.Value)
+                app.SaveasEditField.Value = "Enter a valid name!";
             else
                 v = VideoWriter(strcat(app.SaveDestionation.Value, app.SaveasEditField.Value, '.avi'));
                 v.FrameRate = 4;
@@ -603,9 +614,16 @@ classdef gui_exported < matlab.apps.AppBase
         end
 
         % Button pushed function: SelectsavedestinationButton
-        function SelectsavedestinationButtonPushed(app, event)
-            path = uigetdir();
-            app.SaveDestionation.Value = strcat(path, "/");
+        function SelectsavedestinationButtonPushed(app, pathFinder)
+            path = pathFinder.getdir();
+
+            if path ~= 0
+                app.SaveDestionation.Value = '';
+                app.SaveDestionation.Value = strcat(path, "/");
+            else
+                app.SaveDestionation.Value = "Enter a valid path!";
+            end
+
         end
 
     end
@@ -832,7 +850,7 @@ classdef gui_exported < matlab.apps.AppBase
 
             % Create SelectsavedestinationButton
             app.SelectsavedestinationButton = uibutton(app.ExportvideoPanel, 'push');
-            app.SelectsavedestinationButton.ButtonPushedFcn = createCallbackFcn(app, @SelectsavedestinationButtonPushed, true);
+            app.SelectsavedestinationButton.ButtonPushedFcn = @(src, evt)SelectsavedestinationButtonPushed(app, app.pathFinder); %createCallbackFcn(app, @SelectsavedestinationButtonPushed, true);
             app.SelectsavedestinationButton.Position = [286.5 41 139 22];
             app.SelectsavedestinationButton.Text = 'Select save destination';
 
