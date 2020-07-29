@@ -39,13 +39,12 @@ classdef gui_exported < matlab.apps.AppBase
         SelectsavedestinationButton matlab.ui.control.Button
         SaveDestionation matlab.ui.control.EditField
         PlayButton matlab.ui.control.Button
-        StopButton matlab.ui.control.Button
         SwitchpresantationmodeLabel matlab.ui.control.Label
         Switchpresantationmode matlab.ui.control.Switch
     end
 
     properties (Access = private)
-        tableValues;
+        %tableValues;
         xValues = [];
         yValues = [];
         zValues = [];
@@ -54,24 +53,36 @@ classdef gui_exported < matlab.apps.AppBase
         csvNameTemplate;
         theNcFile;
         colorAccessibilityOption;
-        theMaps = [];
+        %theMaps = [];
         SliderPreviousValue;
         ax1;
         fileChooser;
+        pathFinder;
         stopPlay = false; % Description
         imgArray = [];
     end
+    %% Public variables used in unit tests
+    properties (Access = public)
+        tableValues;
+        theMaps = [];
 
+    end
+
+    %% Private functions accessed only by the app
     methods (Access = private)
-
+        
+        %% generateMap plots data points into a map. Each map is being saved
+        % in an array, as well as image frames taken whilst map generation.
+        % By default the application plots data over Europe.
         function generateMap(app)
-            cla(app.UIAxes, 'reset');
-            axis(app.UIAxes, 'off');
-            app.ax1 = worldmap('Europe');
-            fig1 = app.ax1.Parent;
-            set(fig1, 'units', 'pixels', 'position', [0, 0, 1920, 1080]);
-            set(fig1, 'Visible', 'off');
-            land = shaperead('landareas', 'UseGeoCoords', true);
+            cla(app.UIAxes, 'reset');           % before any map generation, the canvas must be cleaned so that maps will not overlay each other
+            axis(app.UIAxes, 'off');            % turns off field's axis 
+            app.ax1 = worldmap('Europe');       % Create main figure 
+            fig1 = app.ax1.Parent;              % assign the figure to a variable
+            max_resolution = get(0,'ScreenSize');   % get maximal screen resolution
+            set(fig1, 'units', 'pixels', 'position', [0, 0, max_resolution(3), max_resolution(4)]); % set figure's size to possible max
+            set(fig1, 'Visible', 'off');        % set the figure invisible for better user experience
+            land = shaperead('landareas', 'UseGeoCoords', true);    % next lines plot contours on the map
             geoshow([land.Lat], [land.Lon], 'Color', 'k');
             lakes = shaperead('worldlakes', 'UseGeoCoords', true);
             geoshow(lakes, 'FaceColor', 'blue');
@@ -79,60 +90,65 @@ classdef gui_exported < matlab.apps.AppBase
             geoshow(cities, 'Marker', '.', 'Color', 'red');
             xbar = waitbar(0, 'Loading data');
             app.theMaps = [];
-            set(figure(2), 'units', 'pixels', 'position', [0, 0, 1920, 1080]);
-            set(figure(2), 'Visible', 'off');
-            app.imgArray = [];
-
-            for time = 1:length(app.zValues(1, 1, :))
+            set(figure(2), 'units', 'pixels', 'position', [0, 0, max_resolution(3), max_resolution(4)]); % sets 2nd figure's size
+            set(figure(2), 'Visible', 'off');   %turn off its visibility
+            app.imgArray = [];  % clean up images array
+            
+            % for loop iterates through all zValues and plots them on a map
+            for time = 1:length(app.zValues(1, 1, :)) 
                 theTitle = sprintf('Europe at %.f:00', time - 1);
                 title(theTitle);
                 set(0, 'currentfigure', app.ax1.Parent);
                 map = surfm(app.xValues, app.yValues, app.zValues(:, :, time), 'EdgeColor', 'none', 'FaceAlpha', 0.7);
                 theTitle = sprintf('Europe at %.f:00', app.ChangetimeSlider.Value);
                 title(app.ax1, theTitle);
-                app.ChangeColourAccessibilityButtonGroupSelectionChanged();
+                app.ChangeColourAccessibilityButtonGroupSelectionChanged(); %sets color theme bases on chosen option
 
-                app.theMaps = [app.theMaps, map];
-                app.imgArray = [app.imgArray, getframe(app.ax1.Parent)];
-                app.addColorbar(app.ax1);
-                set(app.theMaps(time), 'Visible', 'off');
+                app.theMaps = [app.theMaps, map];   % adds a plot to the array
+                app.imgArray = [app.imgArray, getframe(app.ax1.Parent)];     % takes frame and saves it in an array
+                app.addColorbar(app.ax1);           % adds colorbar to the main figure
+                set(app.theMaps(time), 'Visible', 'off');   %sets all plots to invisible mode
 
                 if isvalid(xbar)
-                    waitbar(time / (length(app.zValues(1, 1, :))), xbar, strcat('In progress (', string(time / (length(app.zValues(1, 1, :))) * 100), '%)'));
+                    waitbar(time / (length(app.zValues(1, 1, :))), xbar, strcat('In progress (', string(time / (length(app.zValues(1, 1, :))) * 100), '%)'));% services progress bar
+                        
                 else
                     continue
                 end
 
             end
-
-            set(0, 'currentfigure', app.ax1.Parent);
-            set(app.theMaps(app.ChangetimeSlider.Value + 1), 'Visible', 'on');
-            app.SliderPreviousValue = (app.ChangetimeSlider.Value) + 1;
+            % when the loop has finished its iteration
+            set(0, 'currentfigure', app.ax1.Parent);    % sets focus on main figure
+            set(app.theMaps(app.ChangetimeSlider.Value + 1), 'Visible', 'on');  % sets (usually) first figure as visible
+            app.SliderPreviousValue = (app.ChangetimeSlider.Value) + 1;     % saves previous iteration value
             theTitle = sprintf('Europe at %.f:00', app.ChangetimeSlider.Value);
-            title(app.UIAxes, theTitle);
-            copyobj(app.ax1.Children, app.UIAxes);
-            app.addColorbar(app.UIAxes);
-            app.PlayButton.Enable = 'on';
-
+            title(app.UIAxes, theTitle);        % adds title to the app's figure
+            copyobj(app.ax1.Children, app.UIAxes); % copies an object from main figure to the app
+            app.addColorbar(app.UIAxes);        % adds color bar to app's figure
+            app.PlayButton.Enable = 'on';       % enables Play buttton to be used
+            % if progress bar hasn't been closed
             if isvalid(xbar)
-                close(xbar);
+                close(xbar); % close progress bar
             end
 
-            app.GenerateaMapButton.Enable = "on";
-
+            app.GenerateaMapButton.Enable = "on";   % enables the button so that next map could be plotted
+                                                    % and prevents app from possible crashes
         end
 
+        %% Function reads nc files and extracts data to variables
         function readNcValuesToTable(app, pathToNcFile)
 
-            if ~isempty(pathToNcFile)
-                app.tableValues = [];
-                xbar = waitbar(0, 'Loading data');
-                app.zValues = ncread(pathToNcFile, app.ChooseModelDropDown.Value);
+            if ~isempty(pathToNcFile)       % if path is valid
+                app.tableValues = [];               % cleans the variable
+                xbar = waitbar(0, 'Loading data');      %start a progress bar
+                app.zValues = [];
+                app.zValues = ncread(pathToNcFile, app.ChooseModelDropDown.Value);  % read chosen nc model and save it in the variable
                 formatSpec = "Table size from hour no. %d:00 : %s";
                 typeof = size(app.zValues);
                 matrixSize = "%d x %d";
-                a = compose(matrixSize, typeof(1, 1), typeof(1, 2));
+                a = compose(matrixSize, typeof(1, 1), typeof(1, 2)); % composes table's entry to show what is being read
 
+                %for loop creates table's entries 
                 for k = 0:(length(app.zValues(1, 1, :)) - 1)
                     value = compose(formatSpec, k, a);
                     app.tableValues = [app.tableValues; value];
@@ -145,8 +161,8 @@ classdef gui_exported < matlab.apps.AppBase
 
                 end
 
-                variables = {ncinfo(pathToNcFile).Variables.Name};
-
+                variables = {ncinfo(pathToNcFile).Variables.Name};  % gathers all variables save in the model
+                % and sets correct names for different models
                 for j = 1:length(variables)
 
                     if strcmp(variables(j), 'lat')
@@ -161,32 +177,33 @@ classdef gui_exported < matlab.apps.AppBase
 
                 end
 
-                app.xValues = ncread(app.pathToNcFile, latitude)'; % create X value
-                app.yValues = ncread(app.pathToNcFile, longitude)'; % create Y values
+                app.xValues = ncread(app.pathToNcFile, latitude)';              % create X value
+                app.yValues = ncread(app.pathToNcFile, longitude)';             % create Y values
                 [app.xValues, app.yValues] = meshgrid(double(app.xValues), double(app.yValues));
-                app.ChangetimeSlider.Limits = [0, ((length(app.zValues(1, 1, :)) - 1))];
-
+                app.ChangetimeSlider.Limits = [0, ((length(app.zValues(1, 1, :)) - 1))];    % set slider's limit
+                app.UITable.Data = [app.tableValues];  % copy values to the app's table
+                % if progress bar hasn't been closed
                 if isvalid(xbar)
-                    delete(xbar);
+                    delete(xbar);  % delete the figure
                 end
-
-                app.UITable.Data = [app.tableValues];
-            else
+            else % do nothing if file isn't found
             end
 
         end
-
+        
+        
+        %% Read data from CSV models
         function readCSVValuesToTable(app, pathToFiles)
-            app.tableValues = [];
-            app.zValues = [];
+            app.tableValues = [];   % clear variables
+            app.zValues = [];       %
 
-            if app.CSVsFolder.Value == "select a name template for csv files"
+            if app.CSVsFolder.Value == "select a name template for csv files"   % different error messages
                 app.CSVsFolder.Value = "Enter a valid path!";
             elseif app.CSVsFolder.Value == "Enter a valid path!"
                 app.CSVsFolder.Value = "Enter a valid path!";
-            else
-                xbar = waitbar(0, 'Loading data');
-
+            else        % if no erros procced to reading the data
+                xbar = waitbar(0, 'Loading data');      % start a progress bar
+                % assigns default template names
                 if app.ChooseEnsembleForCombinedModelButtonGroup.SelectedObject.Tag == "1"
                     nameTemplate = '24HR_Orig_*.csv';
                     app.CSVmodelsnametemplateEditField.Value = nameTemplate;
@@ -194,11 +211,12 @@ classdef gui_exported < matlab.apps.AppBase
                     nameTemplate = '24HR_CBE_*.csv';
                     app.CSVmodelsnametemplateEditField.Value = nameTemplate;
                 end
-
-                dirTemplate = strcat(pathToFiles, app.CSVmodelsnametemplateEditField.Value);
+                % creates a valid path to csv models 
+                dirTemplate = strcat(pathToFiles, app.CSVmodelsnametemplateEditField.Value); %user may alter template name
                 sprintf("selected button: %s", app.ChooseEnsembleForCombinedModelButtonGroup.SelectedObject.Tag);
                 fileDirectory = dir(dirTemplate);
-
+                
+                % iterate through all models and collect data
                 for k = 1:length(fileDirectory)
                     formatSpec = "Table size from hour no. %d:00 : %s";
                     file = fileDirectory(k).name;
@@ -212,41 +230,33 @@ classdef gui_exported < matlab.apps.AppBase
                     value = compose(formatSpec, (k - 1), a);
                     app.tableValues = [app.tableValues; value];
                     app.zValues(:, :, k) = Z;
-
-                    if isvalid(xbar)
+                    if isvalid(xbar) % if progress bar exists, handle is progression
                         waitbar(k / length(fileDirectory), xbar, strcat('In progress (', string(k / length(fileDirectory) * 100), '%)'));
                     else
                         continue
                     end
-
                 end
-
                 app.xValues = 69.95:-0.1:30.05; % create X value
                 app.yValues = -24.95:0.1:44.95; %% create Y values
                 [app.xValues, app.yValues] = meshgrid(double(app.xValues), double(app.yValues));
-                app.ChangetimeSlider.Limits = [0, ((length(fileDirectory)) - 1)];
-
-                if isvalid(xbar)
+                app.ChangetimeSlider.Limits = [0, ((length(fileDirectory)) - 1)];   % change slider limit based on amount of read models
+                app.UITable.Data = [app.tableValues]; % copy data to UI's table
+                if isvalid(xbar)        % close progress bar if any exists
                     delete(xbar);
                 end
-
-                app.UITable.Data = [app.tableValues];
             end
-
         end
-
+        
+        %% Collect models is used when nc file has been chosen
         function collectModels(app)
-
-            if ~isletter(app.pathToNcFile)
+            if ~isletter(app.pathToNcFile)  % if nc file exists
             else
                 variables = {ncinfo(app.pathToNcFile).Variables.Name};
-                app.ChooseModelDropDown.Items = {};
-
+                app.ChooseModelDropDown.Items = {};  % clean the list every time new file is being loaded
                 for i = 1:length(variables)
-
-                    if strcmp(variables(i), 'lat')
-                        continue;
-                    elseif strcmp(variables(i), 'latitude')
+                    if strcmp(variables(i), 'lat')              % skip unnecessary values 
+                        continue;                                
+                    elseif strcmp(variables(i), 'latitude')    
                         continue;
                     elseif strcmp(variables(i), 'lon')
                         continue;
@@ -256,16 +266,14 @@ classdef gui_exported < matlab.apps.AppBase
                         continue;
                     elseif strcmp(variables(i), 'time')
                         continue;
-                    else
+                    else            % add to dropdown list only valid variables
                         app.ChooseModelDropDown.Items = [app.ChooseModelDropDown.Items variables(i)];
                     end
-
                 end
-
             end
-
         end
-
+        
+        %% Adds colorbar to any object passed as argument
         function c = addColorbar(app, toFigure)
             c = colorbar(toFigure);
             c.Label.String = 'Ozone concentration (ppbv )';
@@ -273,18 +281,10 @@ classdef gui_exported < matlab.apps.AppBase
             c.Position(4) = 0.6 * c.Position(4);
             c.Position(1) = 0.95 * c.Position(1);
             c.Position = c.Position + [.05 .2 0 0];
-            %{
-            c = colorbar(app.ax1);
-            c.Label.String = 'Ozone concentration (ppbv )';
-            title(c, 'ppbv')
-            c.Position(4) = 0.6 * c.Position(4);
-            c.Position(1) = 0.95 * c.Position(1);
-            c.Position = c.Position + [.05 .25 0 0];
-            %}
         end
-
+        
+        %% Changes map's color theme
         function mapColourAccessibility(app)
-
             switch app.ChangeColourAccessibilityButtonGroup.SelectedObject.Tag
                 case '0'
                     colormap(app.ax1.Parent, 'jet');
@@ -306,33 +306,32 @@ classdef gui_exported < matlab.apps.AppBase
         end
 
     end
-
-    % Callbacks that handle component events
+    
+    %% Callbacks that handle component events
     methods (Access = private)
         % Code that executes after component creation
         function startupFcn(app, fileChooser)
-
             if nargin == 0
                 disp("zero")
-            elseif nargin == 1
-                app.fileChooser = DefaultFileChooser;
+            elseif nargin == 1          % decides whether app is ran by testing unit 
+                app.fileChooser = DefaultFileChooser;   % or by user
+                app.pathFinder = PathFinder;
                 disp("one")
             else
                 app.fileChooser = fileChooser;
+                app.pathFinder = fileChooser;
                 disp("more")
             end
-
         end
 
         % Button pushed function: GenerateaMapButton
         function GenerateaMapButtonPushed(app, event)
-            clf;
-            app.GenerateaMapButton.Enable = "off";
-
-            if isempty(app.tableValues)
-                app.GenerateaMapButton.Enable = "on";
+            clf;        % clears figure
+            app.GenerateaMapButton.Enable = "off"; % when clicked, turn off the button
+            if isempty(app.tableValues)             % if data table is empty then 
+                app.GenerateaMapButton.Enable = "on";   % leav it active
             else
-                generateMap(app);
+                generateMap(app);       % if everything's ok, run the command
             end
 
         end
@@ -340,19 +339,18 @@ classdef gui_exported < matlab.apps.AppBase
         % Value changed function: ChangetimeSlider
         function ChangetimeSliderValueChanged(app, event)
 
-            if ~isempty(app.theMaps)
-
-                set(app.ChangetimeSlider, 'Value', round(app.ChangetimeSlider.Value));
-                cla(app.UIAxes, 'reset');
+            if ~isempty(app.theMaps)        % if any maps have been plotted, change displayed map 
+                set(app.ChangetimeSlider, 'Value', round(app.ChangetimeSlider.Value)); % set slider exact number
+                cla(app.UIAxes, 'reset');       % clean the figure
                 axis(app.UIAxes, 'off');
                 set(app.theMaps(:), 'Visible', 'off');
                 set(app.theMaps(app.ChangetimeSlider.Value + 1), 'Visible', 'on');
                 copyobj(app.ax1.Children, app.UIAxes);
                 theTitle = sprintf('Europe at %.f:00', app.ChangetimeSlider.Value);
                 title(app.UIAxes, theTitle);
-                app.mapColourAccessibility();
-                app.addColorbar(app.UIAxes);
-                app.SliderPreviousValue = app.ChangetimeSlider.Value + 1;
+                app.mapColourAccessibility();       % check which color theme is selected
+                app.addColorbar(app.UIAxes);        % add proper colorbar
+                app.SliderPreviousValue = app.ChangetimeSlider.Value + 1;  % remeber previous value
             else
             end
 
@@ -360,56 +358,40 @@ classdef gui_exported < matlab.apps.AppBase
 
         % Button pushed function: UploadanNCfileButton
         function UploadanNCfileButtonPushed(app, fileChooser)
-            [file, folder, status] = fileChooser.uigetfile('*.nc');
-            [app.NcFile.Value, app.pathToNcFile] = deal(fullfile(folder, file));
-
+            [file, folder, status] = fileChooser.uigetfile('*.nc');   % selects file with external file chooser
+            [app.NcFile.Value, app.pathToNcFile] = deal(fullfile(folder, file));    % creates the path and assigns it to 2 variables
             if status
-                collectModels(app);
+                collectModels(app);     % triggers function to collect model names
             else
-                app.NcFile.Value = "Enter a valid path!";
+                app.NcFile.Value = "Enter a valid path!";   % if closed, displays error message
             end
-
         end
 
         % Button pushed function: ChoosefolderwithCSVmodelsButton
-        function ChoosefolderwithCSVmodelsButtonPushed(app, event)
-            path = uigetdir();
-
+        function ChoosefolderwithCSVmodelsButtonPushed(app, pathFinder)
+            path = pathFinder.getdir();
             if ~isempty(app.CSVsFolder.Value)
-
-                if path ~= 0
-                    app.CSVsFolder.Value = strcat(path, "/");
-                else
-                    app.CSVsFolder.Value = "select a name template for csv files";
+                if path ~= 0    % if path is valid save in text field
+                    app.CSVsFolder.Value = '';
+                    app.CSVsFolder.Value = path;
+                else    % if not, display error message
+                    app.CSVsFolder.Value = "Enter a valid path!";
                 end
-
             else
-                app.CSVsFolder.Value = "select a name template for csv files";
+                app.CSVsFolder.Value = 'Enter a valid path!';
             end
 
         end
 
-        % Selection changed function:
-        % ChooseEnsembleForCombinedModelButtonGroup
-        function ChooseEnsembleForCombinedModelButtonGroupSelectionChanged(app, event)
-            selectedButton = app.ChooseEnsembleForCombinedModelButtonGroup.SelectedObject;
-
-        end
-
-        % Value changed function: ChooseModelDropDown
-        function ChooseModelDropDownValueChanged(app, event)
-            %app.generateMap(app.ChangetimeSlider.Value);
-        end
-
         % Button pushed function: NCLoadDataButton
+        % when pressed cleans all variables and calls right function
         function NCLoadDataButtonPushed(app, event)
             cla(app.UIAxes, 'reset');
             axis(app.UIAxes, 'off');
             app.tableValues = [];
             app.theMaps = [];
             app.UITable.Data = [];
-
-            if isempty(app.NcFile.Value)
+            if isempty(app.NcFile.Value)  % triggers error message when nc file wasn't selected
                 app.NcFile.Value = "Enter a valid path!";
             elseif ~isletter(app.NcFile.Value)
                 app.NcFile.Value = "Enter a valid path!";
@@ -420,67 +402,63 @@ classdef gui_exported < matlab.apps.AppBase
         end
 
         % Button pushed function: CSVLoadDataButton
+        % when pressed cleans all variables and calls right function
         function CSVLoadDataButtonPushed(app, event)
-            cla(app.UIAxes, 'reset');
+            cla(app.UIAxes, 'reset');       
             axis(app.UIAxes, 'off');
             app.tableValues = [];
             app.theMaps = [];
             app.UITable.Data = [];
-            readCSVValuesToTable(app, app.CSVsFolder.Value);
+            if isempty(app.CSVsFolder.Value) % triggers error message when nc file wasn't selected
+                app.CSVsFolder.Value = "Enter a valid path!";
+            elseif ~isletter(app.CSVsFolder.Value)
+                app.CSVsFolder.Value = "Enter a valid path!";
+            else
+                readCSVValuesToTable(app, app.CSVsFolder.Value);
+            end
         end
 
         % Selection changed function:
         % ChangeColourAccessibilityButtonGroup
         function ChangeColourAccessibilityButtonGroupSelectionChanged(app, event)
-
-            if ~isempty(app.theMaps)
+            if ~isempty(app.theMaps)    % if there's no generated maps,
                 app.mapColourAccessibility();
-            else
+            else                        % sets values back to default
                 app.DefaultButton.Value = true;
             end
 
         end
 
         % Button pushed function: PlayButton
+        % Play button allows user to play a presentation in app's figure
+        % window. User may switch between simple images/frames show and real figures show
+        % !!! Real figures, require more computation power !!! but it is
+        % better quality
         function PlayButtonPushed(app, event)
-            app.PlayButton.Enable = "off";
-            cla(app.UIAxes, 'reset');
+            app.PlayButton.Enable = "off";      % at the start, function resets and cleans
+            cla(app.UIAxes, 'reset');           % previous app's figure
             axis(app.UIAxes, 'off');
-
             set(app.theMaps(app.ChangetimeSlider.Value + 1), 'Visible', 'off');
-
-            if isempty(app.theMaps) || isempty(app.tableValues)
-
-            elseif strcmp(app.Switchpresantationmode.Value, 'Images')
-
-                for time = 1:25
-                    disp(app.stopPlay)
-
+            if isempty(app.theMaps) || isempty(app.tableValues)     % if no maps have been read, do nothing
+            elseif strcmp(app.Switchpresantationmode.Value, 'Images')   % checks switch position
+                for time = 1:25  % should be updated to more dynamic values, but requires more work than expected
                     cla(app.UIAxes, 'reset');
                     axis(app.UIAxes, 'off');
-                    set(app.theMaps(time), 'Visible', 'off');
+                    set(app.theMaps(time), 'Visible', 'off');           % switches images and slider's position
                     set(app.ChangetimeSlider, 'Value', time - 1);
                     theTitle = sprintf('Europe at %.f:00', time - 1);
-                    title(app.UIAxes, theTitle);
-
-                    if time == 25
+                    title(app.UIAxes, theTitle);        % add title to each frame
+                    if time == 25                       % if loop hits last element, repeat last item
                         imshow(app.imgArray(time).cdata, 'parent', app.UIAxes)
-                        %set(app.theMaps(time), 'Visible', 'on');
-                    else
+                    else                                % else iterate through all saved frames
                         imshow(app.imgArray(time).cdata, 'parent', app.UIAxes)
                         app.mapColourAccessibility();
-                        %set(app.theMaps(time + 1), 'Visible', 'on');
                     end
-
-                    pause(1);
-
+                    pause(1);   % pause for a sec at the end 
                 end
-
             elseif strcmp(app.Switchpresantationmode.Value, 'Figures')
-
-                for time = 1:25
+                for time = 1:25             % the same functionality as above
                     disp(app.stopPlay)
-
                     cla(app.UIAxes, 'reset');
                     axis(app.UIAxes, 'off');
                     set(app.theMaps(time), 'Visible', 'off');
@@ -488,21 +466,17 @@ classdef gui_exported < matlab.apps.AppBase
                     theTitle = sprintf('Europe at %.f:00', time - 1);
                     title(app.UIAxes, theTitle);
 
-                    if time == 25
-                        %imshow(app.imgArray(time).cdata, 'parent', app.UIAxes)
+                    if time == 25       % if loop reaches last figure repeat last figure
                         set(app.theMaps(time), 'Visible', 'on');
                         theTitle = sprintf('Europe at %.f:00', 0);
                         title(app.UIAxes, theTitle);
                         copyobj(app.ax1.Children, app.UIAxes);
                         app.mapColourAccessibility();
                         app.addColorbar(app.UIAxes);
-                    else
-                        %imshow(app.imgArray(time).cdata, 'parent', app.UIAxes)
+                    else                % else iterate through all figures
                         if time == 1
                             set(app.theMaps(:), 'Visible', 'off');
                         end
-
-                        %copyobj(app.ax1.Children, app.UIAxes);
                         app.mapColourAccessibility();
                         set(app.theMaps(time), 'Visible', 'on');
                         theTitle = sprintf('Europe at %.f:00', time - 1);
@@ -512,13 +486,13 @@ classdef gui_exported < matlab.apps.AppBase
                         app.addColorbar(app.UIAxes);
                         set(app.theMaps(time), 'Visible', 'off');
                     end
-
-                    pause(1);
-
+                    pause(1);           % pauses for one sec at the end
                 end
 
             end
-
+            % at the end, functions resets app's window figure and displays
+            % default, first figure- sets app to default state just like after
+            % map generation.
             cla(app.UIAxes, 'reset');
             axis(app.UIAxes, 'off');
             set(app.theMaps(25), 'Visible', 'off');
@@ -532,22 +506,21 @@ classdef gui_exported < matlab.apps.AppBase
             app.PlayButton.Enable = "on";
         end
 
-        % Value changed function: Switchpresantationmode
-        function SwitchpresantationmodeValueChanged(app, event)
-            disp(app.Switchpresantationmode.Value);
-
-        end
-
         % Button pushed function: ExportvideofileButton
+        % This function exports video of given name to chosen destination
+        % with a given resolution. The higher resolution, the longer it
+        % takes to export a video.
         function ExportvideofileButtonPushed(app, event)
-
-            if isempty(app.theMaps) || isempty(app.tableValues) || isempty(app.SaveDestionation.Value)
+            if isempty(app.theMaps) || isempty(app.tableValues)
+                [app.SaveasEditField.Value, app.SaveDestionation.Value] = deal("You need to load the data")
+            elseif isempty(app.SaveDestionation.Value)
                 app.SaveDestionation.Value = "Enter a valid path!";
+            elseif isempty(app.SaveasEditField.Value)
+                app.SaveasEditField.Value = "Enter a valid name!";
             else
                 v = VideoWriter(strcat(app.SaveDestionation.Value, app.SaveasEditField.Value, '.avi'));
                 v.FrameRate = 4;
-                open(v);
-
+                open(v);                % start video composing
                 switch app.SelectresolutionDropDown.Value
                     case "Max"
                         resolution = get(0, "ScreenSize");
@@ -557,49 +530,44 @@ classdef gui_exported < matlab.apps.AppBase
                         resolution = [0, 0, 1024, 576];
                     case "1280x720"
                         resolution = [0, 0, 1280, 720];
-                end
-
+                end             % set 2nd figure to selected resolution, figure's resolution == video's resolution
                 set(gcf, 'units', 'pixels', 'position', [0, 0, resolution(3), resolution(4)]);
-                xbar = waitbar(0, 'Exporting the video');
-
-                for time = 1:length(app.zValues(1, 1, :))
-                    set(0, 'currentfigure', app.ax1.Parent);
+                xbar = waitbar(0, 'Exporting the video');   % initiates progress bar
+                for time = 1:length(app.zValues(1, 1, :))   % for loop switches what map needs to be displayed
+                    set(0, 'currentfigure', app.ax1.Parent);    % and then takes the frames, composing a video 
                     theTitle = sprintf('Europe at %.f:00', time - 1);
                     title(app.ax1, theTitle);
-
                     if time == 1
                         set(app.theMaps(:), 'Visible', 'off');
                     end
-
                     set(app.theMaps(time), 'Visible', 'on')
                     frame = getframe(gcf);
                     writeVideo(v, frame);
                     set(app.theMaps(time), 'Visible', 'off');
-
-                    if isvalid(xbar)
+                    if isvalid(xbar)        % if progress bar hasn't been closed continue displaying it
                         waitbar(time / (length(app.zValues(1, 1, :))), xbar, strcat('In progress (', string(time / (length(app.zValues(1, 1, :))) * 100), '%)'));
-                    else
+                    else                    % do nothing if it's closed
                         continue
                     end
-
                 end
-
-                if isvalid(xbar)
-                    close(xbar);
+                if isvalid(xbar)    
+                    close(xbar);    % close progress bar if it hasn't been closed
                 end
-
-                close(v)
-                set(app.theMaps(1), 'Visible', 'on');
+                close(v)            % close video composition
+                set(app.theMaps(1), 'Visible', 'on'); % set first map visible
             end
-
         end
 
         % Button pushed function: SelectsavedestinationButton
-        function SelectsavedestinationButtonPushed(app, event)
-            path = uigetdir();
-            app.SaveDestionation.Value = strcat(path, "/");
+        function SelectsavedestinationButtonPushed(app, pathFinder)
+            path = pathFinder.getdir();         % handles finding save destination
+            if path ~= 0                        % if not empty
+                app.SaveDestionation.Value = '';    % clear the field
+                app.SaveDestionation.Value = strcat(path, "/"); % enter selected directory
+            else        % in case of any error display an error message
+                app.SaveDestionation.Value = "Enter a valid path!"; 
+            end
         end
-
     end
 
     % Component initialization
@@ -664,7 +632,7 @@ classdef gui_exported < matlab.apps.AppBase
 
             % Create ChoosefolderwithCSVmodelsButton
             app.ChoosefolderwithCSVmodelsButton = uibutton(app.OrextractdatafromcsvmodelsPanel, 'push');
-            app.ChoosefolderwithCSVmodelsButton.ButtonPushedFcn = createCallbackFcn(app, @ChoosefolderwithCSVmodelsButtonPushed, true);
+            app.ChoosefolderwithCSVmodelsButton.ButtonPushedFcn = @(src, evt)ChoosefolderwithCSVmodelsButtonPushed(app, app.pathFinder); %createCallbackFcn(app, @ChoosefolderwithCSVmodelsButtonPushed, true);
             app.ChoosefolderwithCSVmodelsButton.Position = [10 178 120 36];
             app.ChoosefolderwithCSVmodelsButton.Text = {'Choose folder with '; 'CSV models'};
 
@@ -824,7 +792,7 @@ classdef gui_exported < matlab.apps.AppBase
 
             % Create SelectsavedestinationButton
             app.SelectsavedestinationButton = uibutton(app.ExportvideoPanel, 'push');
-            app.SelectsavedestinationButton.ButtonPushedFcn = createCallbackFcn(app, @SelectsavedestinationButtonPushed, true);
+            app.SelectsavedestinationButton.ButtonPushedFcn = @(src, evt)SelectsavedestinationButtonPushed(app, app.pathFinder); %createCallbackFcn(app, @SelectsavedestinationButtonPushed, true);
             app.SelectsavedestinationButton.Position = [286.5 41 139 22];
             app.SelectsavedestinationButton.Text = 'Select save destination';
 
@@ -854,12 +822,10 @@ classdef gui_exported < matlab.apps.AppBase
             % Show the figure after all components are created
             app.UIFigure.Visible = 'on';
         end
-
     end
 
     % App creation and deletion
     methods (Access = public)
-
         % Construct app
         function app = gui_exported(varargin)
 
@@ -871,16 +837,13 @@ classdef gui_exported < matlab.apps.AppBase
 
             % Execute the startup function
             runStartupFcn(app, @(app)startupFcn(app, varargin{:}))
-
             if nargout == 0
                 clear app
             end
-
         end
 
         % Code that executes before app deletion
         function delete(app)
-
             % Delete UIFigure when app is deleted
             delete(app.UIFigure)
         end
