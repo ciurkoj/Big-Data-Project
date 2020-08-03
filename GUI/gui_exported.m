@@ -417,8 +417,12 @@ classdef gui_exported < matlab.apps.AppBase
                 readCSVValuesToTable(app, app.CSVsFolder.Value);
             end
         end
-
+    
         % Selection changed function:
+        function ChooseModelDropDownValueChanged(app, event)	
+            %app.generateMap(app.ChangetimeSlider.Value);	
+        end	
+
         % ChangeColourAccessibilityButtonGroup
         function ChangeColourAccessibilityButtonGroupSelectionChanged(app, event)
             if ~isempty(app.theMaps)    % if there's no generated maps,
@@ -557,7 +561,11 @@ classdef gui_exported < matlab.apps.AppBase
                 set(app.theMaps(1), 'Visible', 'on'); % set first map visible
             end
         end
+         % Value changed function: Switchpresantationmode	
+        function SwitchpresantationmodeValueChanged(app, event)	
+            disp(app.Switchpresantationmode.Value);	
 
+        end
         % Button pushed function: SelectsavedestinationButton
         function SelectsavedestinationButtonPushed(app, pathFinder)
             path = pathFinder.getdir();         % handles finding save destination
