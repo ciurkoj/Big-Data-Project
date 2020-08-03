@@ -214,7 +214,7 @@ classdef gui_exported < matlab.apps.AppBase
                 end
                 % creates a valid path to csv models 
                 dirTemplate = strcat(pathToFiles,filesep, app.CSVmodelsnametemplateEditField.Value); %user may alter template name
-                sprintf("selected button: %s", app.ChooseEnsembleForCombinedModelButtonGroup.SelectedObject.Tag);
+                %sprintf("selected button: %s", app.ChooseEnsembleForCombinedModelButtonGroup.SelectedObject.Tag);
                 fileDirectory = dir(dirTemplate);
                 % iterate through all models and collect data
                 for k = 1:length(fileDirectory)
