@@ -60,6 +60,7 @@ classdef gui_exported < matlab.apps.AppBase
         pathFinder;
         stopPlay = false; % Description
         imgArray = [];
+        
     end
     %% Public variables used in unit tests
     properties (Access = public)
@@ -69,7 +70,7 @@ classdef gui_exported < matlab.apps.AppBase
     end
 
     %% Private functions accessed only by the app
-    methods (Access = private)
+    methods (Access = public)
         
         %% generateMap plots data points into a map. Each map is being saved
         % in an array, as well as image frames taken whilst map generation.
@@ -212,16 +213,15 @@ classdef gui_exported < matlab.apps.AppBase
                     app.CSVmodelsnametemplateEditField.Value = nameTemplate;
                 end
                 % creates a valid path to csv models 
-                dirTemplate = strcat(pathToFiles, app.CSVmodelsnametemplateEditField.Value); %user may alter template name
+                dirTemplate = strcat(pathToFiles,filesep, app.CSVmodelsnametemplateEditField.Value); %user may alter template name
                 sprintf("selected button: %s", app.ChooseEnsembleForCombinedModelButtonGroup.SelectedObject.Tag);
                 fileDirectory = dir(dirTemplate);
-                
                 % iterate through all models and collect data
                 for k = 1:length(fileDirectory)
                     formatSpec = "Table size from hour no. %d:00 : %s";
                     file = fileDirectory(k).name;
                     Z = [];
-                    Z = readtable([pathToFiles, file]);
+                    Z = readtable([strcat(pathToFiles, filesep,file)]);
                     Z = table2array(Z);
                     Z = Z';
                     typeof = size(Z);
@@ -239,7 +239,7 @@ classdef gui_exported < matlab.apps.AppBase
                 app.xValues = 69.95:-0.1:30.05; % create X value
                 app.yValues = -24.95:0.1:44.95; %% create Y values
                 [app.xValues, app.yValues] = meshgrid(double(app.xValues), double(app.yValues));
-                app.ChangetimeSlider.Limits = [0, ((length(fileDirectory)) - 1)];   % change slider limit based on amount of read models
+                app.ChangetimeSlider.Limits = [0, ((length(fileDirectory))-1 )];   % change slider limit based on amount of read models
                 app.UITable.Data = [app.tableValues]; % copy data to UI's table
                 if isvalid(xbar)        % close progress bar if any exists
                     delete(xbar);
@@ -308,7 +308,7 @@ classdef gui_exported < matlab.apps.AppBase
     end
     
     %% Callbacks that handle component events
-    methods (Access = private)
+    methods (Access = public)
         % Code that executes after component creation
         function startupFcn(app, fileChooser)
             if nargin == 0
@@ -643,7 +643,7 @@ classdef gui_exported < matlab.apps.AppBase
 
             % Create ChooseEnsembleForCombinedModelButtonGroup
             app.ChooseEnsembleForCombinedModelButtonGroup = uibuttongroup(app.OrextractdatafromcsvmodelsPanel);
-            app.ChooseEnsembleForCombinedModelButtonGroup.SelectionChangedFcn = createCallbackFcn(app, @ChooseEnsembleForCombinedModelButtonGroupSelectionChanged, true);
+            %app.ChooseEnsembleForCombinedModelButtonGroup.SelectionChangedFcn = createCallbackFcn(app, @ChooseEnsembleForCombinedModelButtonGroupSelectionChanged, true);
             app.ChooseEnsembleForCombinedModelButtonGroup.Title = 'Choose Ensemble For Combined Model';
             app.ChooseEnsembleForCombinedModelButtonGroup.Position = [10 90 470 68];
 
