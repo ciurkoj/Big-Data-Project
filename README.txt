@@ -1,7 +1,5 @@
-!!!!!!!!!!!!
 Make sure you have downloaded the right repository: https://github.coventry.ac.uk/ciurkoj/5011CEM
 It guaratees, the project will run without any issues.
-!!!!!!!!!!!!
 
 1. gui_exported.m
 			1.1. Requirements:
